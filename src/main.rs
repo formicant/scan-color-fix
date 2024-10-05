@@ -1,7 +1,15 @@
 mod error;
+mod kernel;
+mod timing;
 
-use std::{fs::File, path::Path, io::BufWriter};
+use std::{collections::VecDeque, fs::File, io::BufWriter, iter, path::Path, cmp::min};
 use error::Error;
+use kernel::Kernel;
+
+const KERNEL_RADIUS: usize = 3;
+
+const RED: usize = 0;
+const BLUE: usize = 2;
 
 struct Image {
     info: png::Info<'static>,
@@ -9,13 +17,20 @@ struct Image {
 }
 
 fn main() -> Result<(), Error> {
-    let input_path = Path::new(r"img/sample.png");
+    let input_path = Path::new(r"img/text300.png");
     let output_path = Path::new(r"img/out.png");
     
-    let mut image = load_image(input_path)?;
-    fix_color(&mut image);
-    save_image(output_path, image)?;
+    let mut timing = timing::Timing::new();
+    println!("Start");
     
+    let mut image = load_image(input_path)?;
+    timing.mark("Decoding");
+    fix_color(&mut image);
+    timing.mark("Processing");
+    save_image(output_path, image)?;
+    timing.mark("Encoding");
+    
+    println!("{timing}");
     return Ok(());
 }
 
@@ -25,9 +40,10 @@ fn load_image(path: &Path) -> Result<Image, Error> {
     let mut reader = decoder.read_info()?;
     
     let (color_type, bit_depth) = reader.output_color_type();
-    if color_type != png::ColorType::Rgb
+    if reader.info().is_animated()
+        || color_type != png::ColorType::Rgb
         || bit_depth != png::BitDepth::Eight
-        || reader.info().is_animated() {
+    {
         return Err(Error::UnsupportedImageType);
     }
     
@@ -52,8 +68,31 @@ fn save_image(path: &Path, image: Image) -> Result<(), Error> {
 }
 
 fn fix_color(image: &mut Image) {
-    let size = image.pixel_data.len();
-    for i in (0..size).step_by(3) {
-        image.pixel_data.swap(i, i + 2);
+    let width = image.info.width as usize;
+    let height = image.info.height as usize;
+    offset_channel(&mut image.pixel_data, width, height, RED, -1.0 / 3.0);
+    offset_channel(&mut image.pixel_data, width, height, BLUE, 1.0 / 3.0);
+}
+
+fn offset_channel(pixel_data: &mut[u8], width: usize, height: usize, channel: usize, offset: f64) {
+    let stride = width * 3;
+    let bottom = height - 1;
+    let kernel = Kernel::translation_lanczos(KERNEL_RADIUS, offset);
+    let kernel_rest = kernel.values.len() - kernel.center_index;
+    
+    for x in 0..width {
+        let index_offset = x * 3 + channel;
+        
+        let mut source: VecDeque<f64> = iter::repeat(0).take(kernel.center_index).chain(0..kernel_rest)
+            .map(|y| pixel_data[min(bottom, y) * stride + index_offset] as f64)
+            .collect();
+        
+        for y in 0..height {
+            let value: f64 = iter::zip(kernel.values.iter(), source.iter()).map(|(k, s)| k * s).sum();
+            pixel_data[y * stride + index_offset] = value.clamp(0.0, 255.0).round() as u8;
+            
+            source.pop_front();
+            source.push_back(pixel_data[min(bottom, y + kernel_rest) * stride + index_offset] as f64);
+        }
     }
 }
