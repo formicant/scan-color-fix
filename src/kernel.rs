@@ -1,10 +1,14 @@
 use std::f64::consts::PI;
 use std::iter;
 
+const FRACTIONAL_BITS: i64 = 32;
+const FRACTIONAL_HALF: i64 = 1i64 << (FRACTIONAL_BITS - 1);
+const FRACTIONAL_FACTOR: f64 = (1i64 << FRACTIONAL_BITS) as f64;
+
 /// A one-dimensional discrete kernel
 #[derive(Debug)]
 pub struct Kernel {
-    values: Vec<f64>,
+    values: Vec<i64>,
     center_index: usize,
 }
 
@@ -18,15 +22,15 @@ impl Kernel {
         let center_index = (radius as f64 + offset).ceil() as usize - 1;
         let len = 2 * radius;
         
-        let mut values: Vec<_> = (0..len)
+        let float_values: Vec<_> = (0..len)
             .map(|index| lanczos(radius as f64, index as f64 - center_index as f64 + offset))
             .collect();
-        
         // Normalizing
-        let sum: f64 = values.iter().sum();
-        for value in values.iter_mut() {
-            *value /= sum;
-        }
+        let sum: f64 = float_values.iter().sum();
+        
+        let values = float_values.iter()
+            .map(|v| (FRACTIONAL_FACTOR * v / sum).round() as i64)
+            .collect();
         Self { values, center_index }
     }
     
@@ -43,10 +47,10 @@ impl Kernel {
     
     /// Calculates the sum of component-wise product of the kernel and the given window.
     pub fn apply<'a, I: Iterator<Item = &'a u8>>(&self, window: I) -> u8 {
-        let sum: f64 = iter::zip(window, self.values.iter())
-            .map(|(&w, &k)| w as f64 * k)
+        let sum: i64 = iter::zip(window, self.values.iter())
+            .map(|(&w, &k)| w as i64 * k)
             .sum();
-        sum.clamp(0.0, 255.0).round() as u8
+        ((sum + FRACTIONAL_HALF) >> FRACTIONAL_BITS).clamp(0, 255) as u8
     }
 }
 
