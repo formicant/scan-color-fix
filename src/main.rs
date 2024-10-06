@@ -75,24 +75,24 @@ fn fix_color(image: &mut Image) {
 }
 
 fn offset_channel(pixel_data: &mut[u8], width: usize, height: usize, channel: usize, offset: f64) {
+    let kernel = Kernel::translation_lanczos(KERNEL_RADIUS, offset);
+    let right_radius = kernel.right_radius();
     let stride = width * 3;
     let bottom = height - 1;
-    let kernel = Kernel::translation_lanczos(KERNEL_RADIUS, offset);
-    let kernel_rest = kernel.values.len() - kernel.center_index;
     
     for x in 0..width {
         let index_offset = x * 3 + channel;
         
-        let mut source: VecDeque<f64> = iter::repeat(0).take(kernel.center_index).chain(0..kernel_rest)
-            .map(|y| pixel_data[min(bottom, y) * stride + index_offset] as f64)
+        let mut window: VecDeque<u8> = iter::repeat(0).take(kernel.left_radius()).chain(0..right_radius)
+            .map(|y| pixel_data[min(bottom, y) * stride + index_offset])
             .collect();
         
         for y in 0..height {
-            let value: f64 = iter::zip(kernel.values.iter(), source.iter()).map(|(k, s)| k * s).sum();
-            pixel_data[y * stride + index_offset] = value.clamp(0.0, 255.0).round() as u8;
+            let value = kernel.apply(window.iter());
+            pixel_data[y * stride + index_offset] = value;
             
-            source.pop_front();
-            source.push_back(pixel_data[min(bottom, y + kernel_rest) * stride + index_offset] as f64);
+            window.pop_front();
+            window.push_back(pixel_data[min(bottom, y + right_radius) * stride + index_offset]);
         }
     }
 }
