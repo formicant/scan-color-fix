@@ -5,7 +5,7 @@ mod timing;
 
 use std::{iter, cmp::min, collections::VecDeque, path::Path, fs::File};
 use error::Error;
-use image::Image;
+use image::{Image, Channel};
 use kernel::Kernel;
 
 const KERNEL_RADIUS: usize = 3;
@@ -36,18 +36,18 @@ fn fix_color(image: &mut Image) {
     let width = image.width();
     let height = image.height();
     let offset = 1.0 / 3.0;
-    offset_channel(&mut image.pixel_data, width, height, image::RED, -offset);
-    offset_channel(&mut image.pixel_data, width, height, image::BLUE, offset);
+    offset_channel(&mut image.pixel_data, width, height, Channel::Red, -offset);
+    offset_channel(&mut image.pixel_data, width, height, Channel::Blue, offset);
 }
 
-fn offset_channel(pixel_data: &mut[u8], width: usize, height: usize, channel: usize, offset: f64) {
+fn offset_channel(pixel_data: &mut[u8], width: usize, height: usize, channel: Channel, offset: f64) {
     let kernel = Kernel::translation_lanczos(KERNEL_RADIUS, offset);
     let right_radius = kernel.right_radius();
     let stride = width * 3;
     let bottom = height - 1;
     
     for x in 0..width {
-        let index_offset = x * 3 + channel;
+        let index_offset = x * 3 + channel as usize;
         
         let mut window: VecDeque<u8> = iter::repeat(0).take(kernel.left_radius()).chain(0..right_radius)
             .map(|y| pixel_data[min(bottom, y) * stride + index_offset])

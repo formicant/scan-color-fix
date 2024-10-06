@@ -1,8 +1,13 @@
 use std::io::{BufWriter, Read, Write};
 use crate::error::Error;
 
-pub const RED: usize = 0;
-pub const BLUE: usize = 2;
+#[allow(unused)]
+#[derive(Clone, Copy)]
+pub enum Channel {
+    Red   = 0,
+    Green = 1,
+    Blue  = 2,
+}
 
 pub struct Image {
     pub pixel_data: Vec<u8>,
