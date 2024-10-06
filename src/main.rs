@@ -1,77 +1,43 @@
 mod error;
+mod image;
 mod kernel;
 mod timing;
 
-use std::{collections::VecDeque, fs::File, io::BufWriter, iter, path::Path, cmp::min};
+use std::{iter, cmp::min, collections::VecDeque, path::Path, fs::File};
 use error::Error;
+use image::Image;
 use kernel::Kernel;
 
 const KERNEL_RADIUS: usize = 3;
 
-const RED: usize = 0;
-const BLUE: usize = 2;
-
-struct Image {
-    info: png::Info<'static>,
-    pixel_data: Vec<u8>,
-}
-
 fn main() -> Result<(), Error> {
-    let input_path = Path::new(r"img/text300.png");
+    let input_path = Path::new(r"img/text600.png");
     let output_path = Path::new(r"img/out.png");
     
     let mut timing = timing::Timing::new();
     println!("Start");
     
-    let mut image = load_image(input_path)?;
+    let input_file = File::open(input_path)?;
+    let mut image = Image::load(input_file)?;
     timing.mark("Decoding");
+    
     fix_color(&mut image);
     timing.mark("Processing");
-    save_image(output_path, image)?;
+    
+    let output_file = File::create(output_path)?;
+    image.save(output_file)?;
     timing.mark("Encoding");
     
     println!("{timing}");
     return Ok(());
 }
 
-fn load_image(path: &Path) -> Result<Image, Error> {
-    let file = File::open(path)?;
-    let decoder = png::Decoder::new(file);
-    let mut reader = decoder.read_info()?;
-    
-    let (color_type, bit_depth) = reader.output_color_type();
-    if reader.info().is_animated()
-        || color_type != png::ColorType::Rgb
-        || bit_depth != png::BitDepth::Eight
-    {
-        return Err(Error::UnsupportedImageType);
-    }
-    
-    let size = reader.output_buffer_size();
-    let mut pixel_data = vec![0; size];
-    reader.next_frame(&mut pixel_data)?;
-    
-    reader.finish()?;
-    let info = reader.info().clone();
-    
-    return Ok(Image { info, pixel_data });
-}
-
-fn save_image(path: &Path, image: Image) -> Result<(), Error> {
-    let file = File::create(path)?;
-    let encoder = png::Encoder::with_info(BufWriter::new(file), image.info)?;
-    
-    let mut writer = encoder.write_header()?;
-    writer.write_image_data(&image.pixel_data)?;
-    
-    return Ok(());
-}
-
 fn fix_color(image: &mut Image) {
-    let width = image.info.width as usize;
-    let height = image.info.height as usize;
-    offset_channel(&mut image.pixel_data, width, height, RED, -1.0 / 3.0);
-    offset_channel(&mut image.pixel_data, width, height, BLUE, 1.0 / 3.0);
+    let width = image.width();
+    let height = image.height();
+    let offset = 1.0 / 3.0;
+    offset_channel(&mut image.pixel_data, width, height, image::RED, -offset);
+    offset_channel(&mut image.pixel_data, width, height, image::BLUE, offset);
 }
 
 fn offset_channel(pixel_data: &mut[u8], width: usize, height: usize, channel: usize, offset: f64) {

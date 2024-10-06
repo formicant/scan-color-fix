@@ -14,6 +14,7 @@ impl Kernel {
     /// that performs translation by `offset` pixels (possibly fractional).
     /// Absolute value of `offset` shouldn’t be greater than `radius`.
     pub fn translation_lanczos(radius: usize, offset: f64) -> Self {
+        assert!(radius > 0);
         assert!(offset.abs() <= radius as f64);
         
         let center_index = (radius as f64 + offset).ceil() as usize - 1;
