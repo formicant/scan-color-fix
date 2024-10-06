@@ -1,14 +1,11 @@
 use std::f64::consts::PI;
 use std::iter;
-
-const FRACTIONAL_BITS: i64 = 32;
-const FRACTIONAL_HALF: i64 = 1i64 << (FRACTIONAL_BITS - 1);
-const FRACTIONAL_FACTOR: f64 = (1i64 << FRACTIONAL_BITS) as f64;
+use fixed::types::I32F32;
 
 /// A one-dimensional discrete kernel
 #[derive(Debug)]
 pub struct Kernel {
-    values: Vec<i64>,
+    values: Vec<I32F32>,
     center_index: usize,
 }
 
@@ -29,7 +26,7 @@ impl Kernel {
         let sum: f64 = float_values.iter().sum();
         
         let values = float_values.iter()
-            .map(|v| (FRACTIONAL_FACTOR * v / sum).round() as i64)
+            .map(|v| I32F32::from_num(v / sum))
             .collect();
         Self { values, center_index }
     }
@@ -47,12 +44,14 @@ impl Kernel {
     
     /// Calculates the sum of component-wise product of the kernel and the given window.
     pub fn apply<'a, I: Iterator<Item = &'a u8>>(&self, window: I) -> u8 {
-        let sum: i64 = iter::zip(window, self.values.iter())
-            .map(|(&w, &k)| w as i64 * k)
+        let sum: I32F32 = iter::zip(window, self.values.iter())
+            .map(|(&w, &k)| I32F32::from_num(w) * k)
             .sum();
-        ((sum + FRACTIONAL_HALF) >> FRACTIONAL_BITS).clamp(0, 255) as u8
+        sum.clamp(I32F32::ZERO, UPPER_BOUND).to_num()
     }
 }
+
+const UPPER_BOUND: I32F32 = I32F32::lit("255");
 
 fn sinc(x: f64) -> f64 {
     let phi = PI * x;
