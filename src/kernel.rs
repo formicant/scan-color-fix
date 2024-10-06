@@ -23,7 +23,6 @@ impl Kernel {
         let float_values: Vec<_> = (0..len)
             .map(|index| lanczos(radius as f64, index as f64 - center_index as f64 + offset))
             .collect();
-        // Normalizing
         let sum: f64 = float_values.iter().sum();
         
         let values = float_values.iter()
@@ -43,7 +42,8 @@ impl Kernel {
         self.values.len() - self.center_index
     }
     
-    /// Calculates the sum of component-wise product of the kernel and the given window.
+    /// Calculates an element of the convolution of the kernel and data
+    /// using a data window.
     pub fn apply<'a, I: Iterator<Item = &'a u8>>(&self, window: I) -> u8 {
         let sum: I32F32 = iter::zip(window, self.values.iter())
             .map(|(&w, &k)| I32F32::from_num(w) * k)
@@ -54,16 +54,16 @@ impl Kernel {
 
 const UPPER_BOUND: I32F32 = I32F32::lit("255");
 
-fn sinc(x: f64) -> f64 {
-    let phi = PI * x;
-    let sinc = phi.sin() / phi;
-    if sinc.is_finite() { sinc } else { 1.0 }
-}
-
 fn lanczos(radius: f64, x: f64) -> f64 {
     if -radius < x && x < radius {
         sinc(x) * sinc(x / radius)
     } else {
         0.0
     }
+}
+
+fn sinc(x: f64) -> f64 {
+    let phi = PI * x;
+    let sinc = phi.sin() / phi;
+    if sinc.is_finite() { sinc } else { 1.0 }
 }

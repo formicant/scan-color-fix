@@ -2,6 +2,7 @@ use std::iter;
 use std::time::Instant;
 use std::fmt;
 
+#[derive(Debug)]
 pub struct Timing {
     marks: Vec<(Instant, &'static str)>
 }

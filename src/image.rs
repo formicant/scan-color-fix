@@ -2,13 +2,14 @@ use std::io::{BufWriter, Read, Write};
 use crate::error::Error;
 
 #[allow(unused)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Channel {
     Red   = 0,
     Green = 1,
     Blue  = 2,
 }
 
+#[derive(Debug)]
 pub struct Image {
     pub pixel_data: Vec<u8>,
     info: png::Info<'static>,
