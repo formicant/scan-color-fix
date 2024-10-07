@@ -7,9 +7,9 @@ As a result, the color channels in the image are shifted by a fraction of a pixe
 
 The program compensates for this shift. It moves the red channel 1/3 px up and the blue channel 1/3 px down using the ́Lánczos interpolation.
 
-|           Before           |            After            |
-|:--------------------------:|:---------------------------:|
-|![before](img/a_x8_orig.png)|![before](img/a_x8_fixed.png)|
+|           Before           |           After            |
+|:--------------------------:|:--------------------------:|
+|![before](img/a_x8_orig.png)|![after](img/a_x8_fixed.png)|
 
 ## Usage
 
