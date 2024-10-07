@@ -37,7 +37,11 @@ impl Image {
         
         return Ok(Image { info, pixel_data });
     }
-
+    
+    pub fn dimensions(&self) -> (usize, usize) {
+        (self.info.width as usize, self.info.height as usize)
+    }
+    
     pub fn save<W: Write>(&self, stream: W) -> Result<(), Error> {
         let encoder = png::Encoder::with_info(BufWriter::new(stream), self.info.clone())?;
         
@@ -45,13 +49,5 @@ impl Image {
         writer.write_image_data(&self.pixel_data)?;
         
         return Ok(());
-    }
-    
-    pub fn width(&self) -> usize {
-        self.info.width as usize
-    }
-    
-    pub fn height(&self) -> usize {
-        self.info.height as usize
     }
 }
