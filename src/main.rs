@@ -4,7 +4,7 @@ use clio::{Input, Output};
 
 use scan_color_fix::fix_color;
 
-/// Fixes color scans made with Pantum M6500W scanner
+/// Corrects color scans made with Pantum M6500W scanner
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
