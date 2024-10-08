@@ -9,7 +9,7 @@ pub enum Channel {
     Blue  = 2,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Image {
     pub pixel_data: Vec<u8>,
     info: png::Info<'static>,
