@@ -43,7 +43,7 @@ scan_image() {
   then
     tempfile=$(mktemp /tmp/scan-color-fix-XXXX.png)
     scanimage -d "$scanner" --resolution=$dpi --mode=$mode --format=png -p -o "$tempfile"
-    ./scan-color-fix "$tempfile" scan-$now.png
+    scan-color-fix "$tempfile" scan-$now.png
     rm "$tempfile"
   else
     scanimage -d "$scanner" --resolution=$dpi --mode=$mode --format=png -p -o scan-$now.png
