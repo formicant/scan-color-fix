@@ -32,5 +32,6 @@ Options:
 The `install.sh` script builds the executable and copies it to `~/.local/bin` alongside the `scan.sh` bash script.
 
 After installation, use `scan` command to choose scanning options and scan images into the current directory.
+Dependencies: `usbutils`, `sane`, `pantum-driver`.
 
 ![screenshot](img/scan-script.png)
